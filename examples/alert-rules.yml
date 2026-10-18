@@ -1,0 +1,33 @@
+# alert-rules.yml — alerting rules, loaded by prometheus.yml.
+# Prometheus evaluates these; Alertmanager decides who hears about them.
+
+groups:
+  - name: machine-health
+    rules:
+      # The simplest useful alert in the world: a target Prometheus
+      # can no longer scrape. `up` is 1 for reachable, 0 for not.
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: >-
+            {{ $labels.instance }} (job {{ $labels.job }}) has been
+            unreachable for over a minute. Prometheus is still running;
+            the target is not answering.
+
+      # CPU genuinely busy, sustained — not a one-second spike.
+      # rate() over the idle counter gives the idle fraction; the
+      # rest of the CPU was busy doing something.
+      - alert: HighCpuBusy
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU busy above 80% on {{ $labels.instance }}"
+          description: >-
+            CPU on {{ $labels.instance }} has been over 80% busy for
+            30 seconds. Current value: {{ $value | printf "%.1f" }}%.

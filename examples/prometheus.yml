@@ -1,0 +1,28 @@
+# prometheus.yml — a small, honest starting configuration.
+# Prometheus scrapes itself and one node_exporter on the same machine.
+
+global:
+  scrape_interval: 15s      # how often targets are scraped
+  evaluation_interval: 15s  # how often alerting/recording rules run
+
+# Rule files are loaded once at startup (and on reload).
+rule_files:
+  - "alert-rules.yml"
+
+# Where firing alerts are sent. Alertmanager is a separate program.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["127.0.0.1:9093"]
+
+scrape_configs:
+  # Prometheus always knows how to scrape itself — a good first target,
+  # because if this one is down, nothing else matters.
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["127.0.0.1:9090"]
+
+  # node_exporter publishes operating-system metrics for this machine.
+  - job_name: "node"
+    static_configs:
+      - targets: ["127.0.0.1:9100"]

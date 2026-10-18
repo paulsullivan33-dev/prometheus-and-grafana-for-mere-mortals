@@ -1,0 +1,22 @@
+# alertmanager.yml — a minimal Alertmanager configuration.
+# It receives alerts from Prometheus and delivers them to a webhook:
+# a plain HTTP POST of JSON to a program of yours.
+
+global:
+  resolve_timeout: 5m # how long a vanished alert is kept as "resolved"
+
+route:
+  receiver: "local-webhook"        # the default receiver, below
+  group_by: ["alertname", "instance"] # batch related alerts together
+  group_wait: 10s       # wait this long for more of the group to arrive
+  group_interval: 30s   # minimum gap between notifications for a group
+  repeat_interval: 1h   # re-notify about still-firing alerts this often
+
+receivers:
+  - name: "local-webhook"
+    webhook_configs:
+      # A tiny local program listening on port 5001 (see the guide).
+      # In real life this URL is a chat hook, a paging service, or
+      # your own script — the shape of the JSON is the same.
+      - url: "http://127.0.0.1:5001/alerts"
+        send_resolved: true # also send a "resolved" message afterwards

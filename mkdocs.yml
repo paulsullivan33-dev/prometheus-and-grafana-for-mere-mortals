@@ -1,0 +1,24 @@
+site_name: Prometheus and Grafana for Mere Mortals
+site_description: Plain-language monitoring. Prometheus collects the numbers, Grafana draws them, and alerting taps you on the shoulder, explained end to end with a real stack run on one machine.
+site_url: https://paulsullivan33-dev.github.io/prometheus-and-grafana-for-mere-mortals/
+
+# Guides live at the repo root (nice for GitHub browsing).
+# The deploy workflow copies them into docs/ before building.
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - What Monitoring Is: what-monitoring-is.md
+  - How Prometheus Works: how-prometheus-works.md
+  - Exporters: exporters.md
+  - Running Prometheus: running-prometheus.md
+  - PromQL: promql.md
+  - Storage and Retention: storage-and-retention.md
+  - Alerting: alerting.md
+  - Grafana: grafana.md
+  - A Worked Example: worked-example.md
+  - Running It for Real: running-it-for-real.md
+  - Troubleshooting: troubleshooting.md
+  - Glossary: glossary.md
+  - Writing Criteria: criteria.md

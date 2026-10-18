@@ -1,0 +1,78 @@
+PromQL cheat sheet — Prometheus and Grafana for Mere Mortals
+=============================================================
+Every query below was run against a live Prometheus scraping
+node_exporter, except where marked (shape) — those are patterns
+to adapt, with the placeholder in <angle brackets>.
+
+THE SHAPES
+----------
+up                                        1 = target scraped OK, 0 = down
+node_load1                                an instant vector: latest sample
+node_cpu_seconds_total{mode="idle"}       label selector: only idle series
+node_cpu_seconds_total{mode!="idle"}     !=, =~ (regex), !~ also exist
+node_filesystem_size_bytes{mountpoint="/"}  one metric, one filesystem
+
+COUNTERS NEED rate()
+--------------------
+rate(node_cpu_seconds_total{mode="idle"}[5m])
+    Per-second increase over the last 5 minutes. Counters only
+    ever grow (and reset on restart); rate() handles both.
+
+rate(node_network_receive_bytes_total{device="<your-interface>"}[5m])
+    Bytes per second arriving on an interface. (Ran here
+    against the lab machine's own interface name.)
+
+increase(node_context_switches_total[1h])
+    Total increase over the window — rate() without the /seconds.
+
+CPU
+---
+100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+    CPU busy percent, all cores averaged.
+
+sum by (mode) (rate(node_cpu_seconds_total[5m]))
+    Where the CPU's time went, one row per mode.
+
+100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100)
+    The same busy percent, kept per machine — the alerting shape.
+
+MEMORY AND DISK
+---------------
+100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+    Memory used percent (MemAvailable already credits the cache).
+
+100 - (100 * node_filesystem_avail_bytes{mountpoint="/"}
+              / node_filesystem_size_bytes{mountpoint="/"})
+    Disk used percent for one filesystem.
+
+node_filesystem_avail_bytes{mountpoint="/"} / (1024^3)
+    Free space in GiB — a gauge you can read raw.
+
+PREDICTION (shape)
+------------------
+predict_linear(node_filesystem_avail_bytes{mountpoint="/"}[6h], 4*24*3600) < 0
+    True when the disk empties within 4 days at the current
+    6-hour trend. The classic "disk filling" alert.
+
+HISTOGRAMS
+----------
+histogram_quantile(0.9,
+  sum by (le) (rate(prometheus_http_request_duration_seconds_bucket[5m])))
+    The 90th-percentile request time. sum by (le) first —
+    histogram_quantile needs the bucket series grouped by le.
+
+AGGREGATION MOVES
+-----------------
+sum(...)            collapse series into one
+avg(...) min(...) max(...)
+... by (instance)   keep that label, collapse the rest
+... without (cpu)   collapse that label, keep the rest
+
+DEBUGGING A QUERY THAT RETURNS NOTHING
+--------------------------------------
+1. Query the bare metric name. Any series at all?
+2. Loosen selectors one at a time — a typo'd label value is
+   still a successful query; it just matches nothing.
+3. Check the target: Status > Targets, or up{job="..."} == 0.
+4. For rate(): the window needs at least two samples inside it.
+   [30s] at a 15s scrape interval is marginal; [2m] is safer.
